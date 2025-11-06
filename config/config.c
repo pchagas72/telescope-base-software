@@ -4,6 +4,7 @@
 #include <string.h>
 
 #define MAX_SERVER_NAME_LENGTH 64
+#define MAX_INPUT_BUFFER_LINE 128
 #define SERVER_FILE_NAME "servers.txt"
 
 int load_servers_from_file(Global_config *config) {
@@ -67,5 +68,80 @@ int load_servers_from_file(Global_config *config) {
     }
 
     fclose(file);
+
+    return 0;
+}
+
+int load_config_file(Global_config *config, char *file_path){
+    FILE *file = fopen(file_path, "r");
+    if (file==NULL){
+        perror("Could not read configuration file.\n");
+        return 1;
+    }
+
+    Parser p;
+    config->NUM_KNOWN_SERVERS = 0;
+    char input_buffer[MAX_INPUT_BUFFER_LINE];
+    p.state = STATE_UNKNOWN;
+
+    while (fgets(input_buffer, sizeof(input_buffer), file) != NULL) {
+
+        // Removes \n's
+        input_buffer[strcspn(input_buffer, "\n")] = 0;
+
+        // Ignores whitespaces
+        char *line = input_buffer;
+        while (*line == ' ' || *line == '\t') {
+            line++;
+        }
+
+        // Skip empty lines or comments
+        if (line[0] == '\0' || line[0] == '#'){
+            continue;
+        }
+
+        if (strncmp(input_buffer, "SERVERS:", 8) == 0){
+            p.state = STATE_SERVER;
+            continue;
+        }
+
+        if (strncmp(input_buffer, "MQTT:", 5) == 0){
+            p.state = STATE_MQTT;
+            continue;
+        }
+
+        switch (p.state) {
+            case STATE_SERVER:
+                if (strncmp(line, "SERVER_NAME=", 12)==0) {
+                    char *value = line + 12; 
+
+                    size_t len = strlen(value);
+                    while (len > 0 && (value[len - 1] == ' ' || value[len - 1] == '\t' || value[len - 1] == '\r')) {
+                        value[--len] = 0;
+                    }
+
+                    if (config->SERVER_NAME) free(config->SERVER_NAME);
+                    config->SERVER_NAME = (char*)malloc(len+1);
+
+                    if (config->SERVER_NAME == NULL) {
+                        perror("Failed to allocate memory for SERVER_NAME");
+                        fclose(file);
+                        return 1;
+                    }
+                    strcpy(config->SERVER_NAME, value);
+                }
+                break;
+            case STATE_MQTT:
+                printf("Found MQTT: %s\n", input_buffer);
+                break;
+            case STATE_UNKNOWN:
+                break;
+        }
+    
+    }
+
+    config->MQTT_BROKER_ADDRESS="192.168.1.3:1883"; 
+    config->MQTT_QOS= 1;
+
     return 0;
 }

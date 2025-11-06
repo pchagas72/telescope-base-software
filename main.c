@@ -12,11 +12,9 @@
 #include "mqtt/mqtt.h"
 
 #define MAX_LINE_LENGTH 256
-#define SERVER_NAME "BASE ALPHA"
 #define HISTORY_FILE_NAME "history.txt"
 
 // MQTT definitions
-#define MQTT_BROKER_ADDRESS "localhost:1883"
 #define MQTT_RESPONSE_TOPIC "home/testing"
 #define MQTT_QOS 1
 
@@ -49,11 +47,14 @@ void cleanup_config(Global_config *config){
 // Helper function to draw the input prompt in the input window
 void draw_prompt(WINDOW *win) {
     wclear(win);
-    mvwprintw(win, 0, 0, "%s: ", SERVER_NAME);
+    mvwprintw(win, 0, 0, "%s: ", config.SERVER_NAME);
     wrefresh(win);
 }
 
 int main(int argc, char *argv[]){
+
+    // Testing and debugging
+    load_config_file(&config, "config.ini");
 
     // Initializing ncurses
     initscr(); // Init screen, inits the ncurses module
@@ -76,19 +77,6 @@ int main(int argc, char *argv[]){
     cb_ctx.mutex = &ncurses_mutex;
     cb_ctx.output_win = out_win;
 
-    // Connects to MQTT broker
-    if ((connect_mqtt_client(&client,
-                &conn_opts,
-                MQTT_BROKER_ADDRESS,
-                SERVER_NAME,
-                &cb_ctx)) != 0){ // Pass context struct
-        endwin(); // Exit ncurses mode
-        fprintf(stderr, "%s: Could not establish connection with MQTT broker.\n", SERVER_NAME);
-        return 1;
-    }
-
-    wprintw(out_win, "%s: STARTED MQTT\n", SERVER_NAME);
-
     // For now the servers are manually written to a file, CHANGE THIS TO:
     // sv.discover -> all the servers that are listening to /servers/ALL/ping send
     // a response with their name and description.
@@ -100,9 +88,22 @@ int main(int argc, char *argv[]){
         return 1;
     }
 
+    // Connects to MQTT broker
+    if ((connect_mqtt_client(&client,
+                &conn_opts,
+                config.MQTT_BROKER_ADDRESS,
+                config.SERVER_NAME,
+                &cb_ctx)) != 0){ // Pass context struct
+        endwin(); // Exit ncurses mode
+        fprintf(stderr, "%s: Could not establish connection with MQTT broker.\n", config.SERVER_NAME);
+        return 1;
+    }
+
+    wprintw(out_win, "%s: STARTED MQTT\n", config.SERVER_NAME);
+
     // Subscribing to the servers, CHANGE THIS TO:
     // for every server on the server list, subscribe to (/servers/NAME/response)
-    wprintw(out_win, "%s - MQTT: Subscribing to %s...\n",SERVER_NAME, MQTT_RESPONSE_TOPIC);
+    wprintw(out_win, "%s - MQTT: Subscribing to %s...\n",config.SERVER_NAME, MQTT_RESPONSE_TOPIC);
     if ((MQTTClient_subscribe(client, MQTT_RESPONSE_TOPIC, MQTT_QOS)) != MQTTCLIENT_SUCCESS)
     {
         wprintw(out_win, "Failed to subscribe, return code %d\n", rc);
@@ -111,7 +112,7 @@ int main(int argc, char *argv[]){
         return 1; 
     }
 
-    wprintw(out_win, "%s: Loaded %d servers.\n",SERVER_NAME, config.NUM_KNOWN_SERVERS);
+    wprintw(out_win, "%s: Loaded %d servers.\n",config.SERVER_NAME, config.NUM_KNOWN_SERVERS);
     wrefresh(out_win); // Refresh output window to show messages
 
     // Buffers and variables for the main loop
@@ -144,7 +145,7 @@ int main(int argc, char *argv[]){
 
                 // Write the command in the output window
                 pthread_mutex_lock(&ncurses_mutex);
-                wprintw(out_win, "%s: %s\n", SERVER_NAME, input_buffer);
+                wprintw(out_win, "%s: %s\n", config.SERVER_NAME, input_buffer);
                 wrefresh(out_win);
                 pthread_mutex_unlock(&ncurses_mutex);
 

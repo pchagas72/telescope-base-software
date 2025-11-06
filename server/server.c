@@ -26,7 +26,7 @@ int ping_server(
     }
 
     char topic_buffer[128];
-    char *payload = "sv.ping";
+    char *payload = "sv.ping"; // Change this later
 
 
     if(ping_all){
