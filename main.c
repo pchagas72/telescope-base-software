@@ -51,7 +51,7 @@ void draw_prompt(WINDOW *win) {
     wrefresh(win);
 }
 
-int main(int argc, char *argv[]){
+int main(){
 
     // Testing and debugging
     load_config_file(&config, "config.ini");
@@ -193,6 +193,22 @@ int main(int argc, char *argv[]){
                         input_buffer_tokens = strtok(NULL, " "); // Next token
                         // Pass mutex and output window to the function
                         list_servers(&config, &ncurses_mutex, out_win);
+                        break;
+                    case MQTT_ADDRESS:
+                        pthread_mutex_lock(&ncurses_mutex);
+                        wprintw(out_win, "MQTT BROKER ADDRESS: %s\n",config.MQTT_BROKER_ADDRESS);
+                        wrefresh(out_win);
+                        pthread_mutex_unlock(&ncurses_mutex);
+                        break;
+                    case PROGRAM_HELP:
+                        pthread_mutex_lock(&ncurses_mutex);
+                        wprintw(out_win, "  Server commands:\n");
+                        wprintw(out_win, "      sv.list : Lists servers registered in servers.txt file\n");
+                        wprintw(out_win, "      sv.ping <SERVER_NAME/ALL> : Sends ping command to specific server or to all servers. \n");
+                        wprintw(out_win, "  MQTT commands:\n");
+                        wprintw(out_win, "     mqtt.address : Prints to the output screen the MQTT Broker address.\n");
+                        wrefresh(out_win);
+                        pthread_mutex_unlock(&ncurses_mutex);
                         break;
                 }
 

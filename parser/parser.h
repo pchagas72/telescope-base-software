@@ -4,6 +4,8 @@
 enum instructions{
     PING_SERVER,
     LIST_SERVERS,
+    MQTT_ADDRESS,
+    PROGRAM_HELP,
     ERROR,
 };
 

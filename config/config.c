@@ -132,16 +132,41 @@ int load_config_file(Global_config *config, char *file_path){
                 }
                 break;
             case STATE_MQTT:
-                printf("Found MQTT: %s\n", input_buffer);
-                break;
+                if (strncmp(line, "BROKER_ADDRESS=",  15)==0){
+                    char *value = line + 15;
+
+                    size_t len = strlen(value);
+                    while (len > 0 && (value[len - 1] == ' ' || value[len - 1] == '\t' || value[len - 1] == '\r')) {
+                        value[--len] = 0;
+                    }
+
+                    if (config->MQTT_BROKER_ADDRESS) free(config->MQTT_BROKER_ADDRESS);
+                    config->MQTT_BROKER_ADDRESS = (char*)malloc(len+1);
+
+                    if (config->MQTT_BROKER_ADDRESS == NULL) {
+                        perror("Failed to allocate memory for MQTT_BROKER_ADDRESS");
+                        fclose(file);
+                        return 1;
+                    }
+                    strcpy(config->MQTT_BROKER_ADDRESS, value);
+
+                }
+                if (strncmp(line, "QOS=",  4)==0){
+                    char *value = line + 4;
+
+                    size_t len = strlen(value);
+                    while (len > 0 && (value[len - 1] == ' ' || value[len - 1] == '\t' || value[len - 1] == '\r')) {
+                        value[--len] = 0;
+                    }
+
+                    config->MQTT_QOS = atoi(value);
+
+                }
             case STATE_UNKNOWN:
                 break;
         }
     
     }
-
-    config->MQTT_BROKER_ADDRESS="192.168.1.3:1883"; 
-    config->MQTT_QOS= 1;
 
     return 0;
 }

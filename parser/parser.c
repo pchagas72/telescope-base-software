@@ -12,5 +12,13 @@ enum instructions parse_input_buffer(char *input_buffer){
         return LIST_SERVERS;
     }
 
+   if (strstr(input_buffer, "mqtt.address")) {
+        return MQTT_ADDRESS;
+    }
+
+   if (strstr(input_buffer, "help")) {
+        return PROGRAM_HELP;
+    }
+
     return ERROR;
 }
