@@ -79,10 +79,8 @@ int load_config_file(Global_config *config, char *file_path){
         return 1;
     }
 
-    Parser p;
     config->NUM_KNOWN_SERVERS = 0;
     char input_buffer[MAX_INPUT_BUFFER_LINE];
-    p.state = STATE_UNKNOWN;
 
     while (fgets(input_buffer, sizeof(input_buffer), file) != NULL) {
 
@@ -100,72 +98,56 @@ int load_config_file(Global_config *config, char *file_path){
             continue;
         }
 
-        if (strncmp(input_buffer, "SERVERS:", 8) == 0){
-            p.state = STATE_SERVER;
+        if (strncmp(line, "SERVER_NAME=", 12)==0) {
+            char *value = line + 12; 
+
+            size_t len = strlen(value);
+            while (len > 0 && (value[len - 1] == ' ' || value[len - 1] == '\t' || value[len - 1] == '\r')) {
+                value[--len] = 0;
+            }
+
+            if (config->SERVER_NAME) free(config->SERVER_NAME);
+            config->SERVER_NAME = (char*)malloc(len+1);
+
+            if (config->SERVER_NAME == NULL) {
+                perror("Failed to allocate memory for SERVER_NAME");
+                fclose(file);
+                return 1;
+            }
+            strcpy(config->SERVER_NAME, value);
             continue;
         }
+        if (strncmp(line, "BROKER_ADDRESS=",  15)==0){
+            char *value = line + 15;
 
-        if (strncmp(input_buffer, "MQTT:", 5) == 0){
-            p.state = STATE_MQTT;
+            size_t len = strlen(value);
+            while (len > 0 && (value[len - 1] == ' ' || value[len - 1] == '\t' || value[len - 1] == '\r')) {
+                value[--len] = 0;
+            }
+
+            if (config->MQTT_BROKER_ADDRESS) free(config->MQTT_BROKER_ADDRESS);
+            config->MQTT_BROKER_ADDRESS = (char*)malloc(len+1);
+
+            if (config->MQTT_BROKER_ADDRESS == NULL) {
+                perror("Failed to allocate memory for MQTT_BROKER_ADDRESS");
+                fclose(file);
+                return 1;
+            }
+            strcpy(config->MQTT_BROKER_ADDRESS, value);
+            continue;
+
+        }
+        if (strncmp(line, "QOS=",  4)==0){
+            char *value = line + 4;
+
+            size_t len = strlen(value);
+            while (len > 0 && (value[len - 1] == ' ' || value[len - 1] == '\t' || value[len - 1] == '\r')) {
+                value[--len] = 0;
+            }
+
+            config->MQTT_QOS = atoi(value);
             continue;
         }
-
-        switch (p.state) {
-            case STATE_SERVER:
-                if (strncmp(line, "SERVER_NAME=", 12)==0) {
-                    char *value = line + 12; 
-
-                    size_t len = strlen(value);
-                    while (len > 0 && (value[len - 1] == ' ' || value[len - 1] == '\t' || value[len - 1] == '\r')) {
-                        value[--len] = 0;
-                    }
-
-                    if (config->SERVER_NAME) free(config->SERVER_NAME);
-                    config->SERVER_NAME = (char*)malloc(len+1);
-
-                    if (config->SERVER_NAME == NULL) {
-                        perror("Failed to allocate memory for SERVER_NAME");
-                        fclose(file);
-                        return 1;
-                    }
-                    strcpy(config->SERVER_NAME, value);
-                }
-                break;
-            case STATE_MQTT:
-                if (strncmp(line, "BROKER_ADDRESS=",  15)==0){
-                    char *value = line + 15;
-
-                    size_t len = strlen(value);
-                    while (len > 0 && (value[len - 1] == ' ' || value[len - 1] == '\t' || value[len - 1] == '\r')) {
-                        value[--len] = 0;
-                    }
-
-                    if (config->MQTT_BROKER_ADDRESS) free(config->MQTT_BROKER_ADDRESS);
-                    config->MQTT_BROKER_ADDRESS = (char*)malloc(len+1);
-
-                    if (config->MQTT_BROKER_ADDRESS == NULL) {
-                        perror("Failed to allocate memory for MQTT_BROKER_ADDRESS");
-                        fclose(file);
-                        return 1;
-                    }
-                    strcpy(config->MQTT_BROKER_ADDRESS, value);
-
-                }
-                if (strncmp(line, "QOS=",  4)==0){
-                    char *value = line + 4;
-
-                    size_t len = strlen(value);
-                    while (len > 0 && (value[len - 1] == ' ' || value[len - 1] == '\t' || value[len - 1] == '\r')) {
-                        value[--len] = 0;
-                    }
-
-                    config->MQTT_QOS = atoi(value);
-
-                }
-            case STATE_UNKNOWN:
-                break;
-        }
-    
     }
 
     return 0;
