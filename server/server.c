@@ -26,21 +26,15 @@ int ping_server(
     }
 
     char topic_buffer[128];
-    char *payload = "sv.ping"; // Change this later
-
+    char payload[64];
+    snprintf(payload, 64, "sv.ping");
 
     if(ping_all){
-        // Locking interface mutex
         pthread_mutex_lock(mutex);
-
-        // Writes and updates the interface
         wprintw(output_win, "Pinging ALL servers...\n");
         wrefresh(output_win);
-                            
-        // Unlock interface mutex
         pthread_mutex_unlock(mutex);
 
-        // Sends message
         snprintf(topic_buffer, 128, "servers/ALL/command");
         mqtt_publish_message(client, topic_buffer, payload);
         return 0;
