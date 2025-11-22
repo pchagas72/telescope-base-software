@@ -8,8 +8,9 @@ Terminal-like interface for my array of radio telescopes.
 - [X] Add config file
 - [X] Add online MQTT broker
 - [X] Implement mqtts
+- [x] Auto sub to any servers listed on servers.txt
+- [ ] Remove servers.txt and add it to config.ini
 - [ ] Reconnect to mqtt through command line
-- [ ] Command to discover and update servers
 - [ ] Implement sv.rotate <SERVER-NAME> <COORDINATES>
 
 ## Study
