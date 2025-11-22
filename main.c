@@ -21,6 +21,7 @@
 MQTTClient client;
 MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 int rc;
+char response_topic_buffer[32];
 
 // Server config struct
 Global_config config;
@@ -108,13 +109,16 @@ int main(){
 
     // Subscribing to the servers, CHANGE THIS TO:
     // for every server on the server list, subscribe to (/servers/NAME/response)
-    wprintw(out_win, "%s - MQTT: Subscribing to %s...\n",config.SERVER_NAME, MQTT_RESPONSE_TOPIC);
-    if ((MQTTClient_subscribe(client, MQTT_RESPONSE_TOPIC, MQTT_QOS)) != MQTTCLIENT_SUCCESS)
-    {
-        wprintw(out_win, "Failed to subscribe, return code %d\n", rc);
-        wrefresh(out_win);
-        endwin(); // Exit ncurses
-        return 1; 
+    for (int i = 0; i < config.NUM_KNOWN_SERVERS; i++) {
+        snprintf(response_topic_buffer, sizeof(response_topic_buffer), "servers/%s/response", config.KNOWN_SERVERS[i]);
+        wprintw(out_win, "%s - MQTT: Subscribing to %s...\n",config.SERVER_NAME, response_topic_buffer);
+        if ((MQTTClient_subscribe(client, response_topic_buffer, MQTT_QOS)) != MQTTCLIENT_SUCCESS)
+        {
+            wprintw(out_win, "Failed to subscribe, return code %d\n", rc);
+            wrefresh(out_win);
+            endwin(); // Exit ncurses
+            return 1; 
+        }
     }
 
     wprintw(out_win, "%s: Loaded %d servers.\n",config.SERVER_NAME, config.NUM_KNOWN_SERVERS);
