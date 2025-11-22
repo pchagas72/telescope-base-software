@@ -10,6 +10,7 @@ typedef struct global_config{
     int MQTT_QOS;
     char *PASSWORD;
     char *USERNAME;
+    char *TARGET_SERVER;
 } Global_config;
 
 int load_servers_from_file(Global_config *config);

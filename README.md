@@ -12,6 +12,10 @@ Terminal-like interface for my array of radio telescopes.
 - [ ] Remove servers.txt and add it to config.ini
 - [ ] Reconnect to mqtt through command line
 - [ ] Implement sv.rotate <SERVER-NAME> <COORDINATES>
+- [ ] Create message struct
+```
+    Message struct be like: <ID BITS - STRUCT>
+```
 
 ## Study
 

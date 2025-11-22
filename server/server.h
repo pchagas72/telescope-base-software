@@ -7,7 +7,10 @@
 #include <ncurses.h>
 
 typedef struct server {
+    char *SERVER_NAME;
     int status;
+    int x;
+    int y;
 } Server;
 
 int ping_server(

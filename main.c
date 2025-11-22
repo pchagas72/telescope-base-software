@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <ncurses.h>
 
+#include "helper/helper.h"
 #include "parser/parser.h"
 #include "server/server.h"
 #include "config/config.h"
@@ -145,6 +146,22 @@ int main(){
         ch = wgetch(in_win); // Get character from input window
 
         switch (ch) {
+            case KEY_UP:
+                pthread_mutex_lock(&ncurses_mutex);
+                wprintw(out_win, "Sending to server: %s\n", config.TARGET_SERVER);
+                wrefresh(out_win);
+                pthread_mutex_unlock(&ncurses_mutex);
+                break;
+
+            case KEY_DOWN:
+                break;
+
+            case KEY_LEFT:
+                break;
+
+            case KEY_RIGHT:
+                break;
+
             case '\n': // Enter/RETURN
                 if (input_pos == 0) {
                     continue; // Ignores when the input buffer is empty
@@ -218,6 +235,27 @@ int main(){
                         wprintw(out_win, "     mqtt.address : Prints to the output screen the MQTT Broker address.\n");
                         wrefresh(out_win);
                         pthread_mutex_unlock(&ncurses_mutex);
+                        break;
+                    case SERVER_TARGET:
+                        input_buffer_tokens = strtok(NULL, " ");
+                        if (input_buffer_tokens == NULL) {
+                            pthread_mutex_lock(&ncurses_mutex);
+                            wprintw(out_win, "Syntax error.\n"); 
+                            wprintw(out_win, "Usage: sv.target <SERVER NAME>\n"); 
+                            pthread_mutex_unlock(&ncurses_mutex);
+                        }
+                        if (server_exists(input_buffer_tokens, &config) == 1) {
+                            config.TARGET_SERVER = input_buffer_tokens;
+                            // TODO: IMPLEMENT UPDATE_SERVERS
+                            // It should send a command to ALL requesting a updated 
+                            // server struct for each server
+                            // Updates all servers
+                            // Updates target_server pointer
+                            pthread_mutex_lock(&ncurses_mutex);
+                            wprintw(out_win, "Targeting server %s...\n", input_buffer_tokens);
+                            wrefresh(out_win);
+                            pthread_mutex_unlock(&ncurses_mutex);
+                        }
                         break;
                 }
 

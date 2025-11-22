@@ -20,5 +20,9 @@ enum instructions parse_input_buffer(char *input_buffer){
         return PROGRAM_HELP;
     }
 
+   if (strstr(input_buffer, "sv.target")) {
+        return SERVER_TARGET;
+   }
+
     return ERROR;
 }

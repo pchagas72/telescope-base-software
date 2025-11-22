@@ -6,6 +6,7 @@
 #include "../mqtt/mqtt.h"
 #include <pthread.h>
 #include <ncurses.h>
+#include "../helper/helper.h"
 
 int ping_server(
         MQTTClient client,
@@ -14,22 +15,13 @@ int ping_server(
         pthread_mutex_t *mutex,
         WINDOW *output_win){
 
-    bool server_exists = false;
-    bool ping_all = false;
-    for (int i = 0; i < config->NUM_KNOWN_SERVERS; i++) {
-        if (strcmp(server_name, config->KNOWN_SERVERS[i]) == 0) {
-            server_exists = true; 
-        }
-        if (strcmp(server_name, "ALL") == 0) {
-            ping_all = true; 
-        }
-    }
+    int whom_to_ping = server_exists(server_name, config);
 
     char topic_buffer[128];
     char payload[64];
     snprintf(payload, 64, "sv.ping");
 
-    if(ping_all){
+    if(whom_to_ping == 2){
         pthread_mutex_lock(mutex);
         wprintw(output_win, "Pinging ALL servers...\n");
         wrefresh(output_win);
@@ -40,7 +32,7 @@ int ping_server(
         return 0;
     }
 
-    if(server_exists){
+    if(whom_to_ping == 1){
         pthread_mutex_lock(mutex);
         wprintw(output_win, "Pinging %s...\n", server_name);
         wrefresh(output_win);

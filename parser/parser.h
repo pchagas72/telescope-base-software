@@ -7,6 +7,7 @@ enum instructions{
     MQTT_ADDRESS,
     PROGRAM_HELP,
     ERROR,
+    SERVER_TARGET,
 };
 
 enum instructions parse_input_buffer(char *input_buffer);
