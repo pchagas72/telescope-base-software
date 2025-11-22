@@ -1,4 +1,5 @@
 #include "mqtt.h"
+#include <MQTTClient.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,6 +47,8 @@ int connect_mqtt_client(
         MQTTClient_connectOptions *conn_opts,
         char *ADDRESS,
         char *CLIENTID,
+        char *USERNAME,
+        char *PASSWORD,
         void *context
         ){
     int rc;
@@ -54,7 +57,7 @@ int connect_mqtt_client(
     if ((rc = MQTTClient_create(client, ADDRESS, CLIENTID,
                     MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS){
         // Critical errors are printed in STDERR
-        fprintf(stderr, "PAHOMQTT: Falied to create client, return code %d\n", rc);
+        fprintf(stderr, "PAHOMQTT: Failed to create client, return code %d\n", rc);
         rc = EXIT_FAILURE;
         return 1;
     }
@@ -68,9 +71,26 @@ int connect_mqtt_client(
         return 1;
     }
 
+    MQTTClient_SSLOptions ssl_opts = MQTTClient_SSLOptions_initializer;
+    ssl_opts.enableServerCertAuth = 1;
+    ssl_opts.trustStore = "/etc/ssl/certs/ca-certificates.crt";
+
+    if (strncmp(ADDRESS, "ssl://", 6) == 0 || strncmp(ADDRESS, "mqtts://", 8) == 0){
+        conn_opts->ssl = &ssl_opts;
+    }
+
+    conn_opts->username = USERNAME;
+    conn_opts->password = PASSWORD;
+
+    // Needs to be stated, or else ERROR PAHOmqtt -14 might happen
+    conn_opts->MQTTVersion = MQTTVERSION_3_1_1;
+
     if ((rc = MQTTClient_connect(*client, conn_opts)) != MQTTCLIENT_SUCCESS)
     {
         fprintf(stderr, "PAHOMQTT: Failed to connect, return code %d\n",rc);
+        if (conn_opts->ssl != NULL) {
+            fprintf(stderr, "Note: SSL connection failed. Check certificates and protocol prefix (ssl://).\n");
+        }
         rc = EXIT_FAILURE;
         return 1;
     }

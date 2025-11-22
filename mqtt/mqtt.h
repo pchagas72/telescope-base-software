@@ -20,6 +20,8 @@ int connect_mqtt_client(
         MQTTClient_connectOptions *conn_opts,
         char *ADDRESS,
         char *CLIENTID,
+        char *USERNAME,
+        char *PASSWORD,
         void *context);
 
 #endif

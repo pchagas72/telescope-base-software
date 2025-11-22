@@ -1,0 +1,4 @@
+PAHOMQTT: Init
+PAHOMQTT: Failed to connect, return code 5
+Note: SSL connection failed. Check certificates and protocol prefix (ssl://).
+BASE: Could not establish connection with MQTT broker.

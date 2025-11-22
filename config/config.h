@@ -8,6 +8,8 @@ typedef struct global_config{
     char *SERVER_NAME;
     char *MQTT_BROKER_ADDRESS;
     int MQTT_QOS;
+    char *PASSWORD;
+    char *USERNAME;
 } Global_config;
 
 int load_servers_from_file(Global_config *config);

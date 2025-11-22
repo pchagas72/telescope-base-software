@@ -15,7 +15,7 @@
 #define HISTORY_FILE_NAME "history.txt"
 
 // MQTT definitions
-#define MQTT_RESPONSE_TOPIC "home/testing"
+#define MQTT_RESPONSE_TOPIC "servers/BRAVO/response"
 #define MQTT_QOS 1
 
 MQTTClient client;
@@ -39,8 +39,11 @@ void cleanup_config(Global_config *config){
             } 
         } 
         free(config->KNOWN_SERVERS);
-        config->KNOWN_SERVERS = NULL;
-        config->NUM_KNOWN_SERVERS = 0;
+
+        if (config->SERVER_NAME) free(config->SERVER_NAME);
+        if (config->MQTT_BROKER_ADDRESS) free(config->MQTT_BROKER_ADDRESS);
+        if (config->USERNAME) free(config->USERNAME);
+        if (config->PASSWORD) free(config->PASSWORD);
     }
 }
 
@@ -93,6 +96,8 @@ int main(){
                 &conn_opts,
                 config.MQTT_BROKER_ADDRESS,
                 config.SERVER_NAME,
+                config.USERNAME,
+                config.PASSWORD,
                 &cb_ctx)) != 0){ // Pass context struct
         endwin(); // Exit ncurses mode
         fprintf(stderr, "%s: Could not establish connection with MQTT broker.\n", config.SERVER_NAME);

@@ -9,7 +9,7 @@ CFLAGS = -Wall -Wextra -g -std=c11
 
 LDFLAGS =
 
-LIBS = -lpthread -lpaho-mqtt3c -lncurses
+LIBS = -lpthread -lpaho-mqtt3cs -lncurses
 
 SRCS = $(shell find . -name "*.c")
 OBJS = $(SRCS:.c=.o)

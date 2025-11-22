@@ -148,6 +148,46 @@ int load_config_file(Global_config *config, char *file_path){
             config->MQTT_QOS = atoi(value);
             continue;
         }
+        if (strncmp(line, "USERNAME=", 9) == 0){
+            char *value = line + 9;
+
+            // Jumps whitelines
+            size_t len = strlen(value);
+            while (len > 0 && (value[len - 1] == ' ' || value[len - 1] == '\t' || value[len - 1] == '\r')) {
+                value[--len] = 0;
+            }
+
+            if (config->USERNAME) free(config->USERNAME);
+            config->USERNAME = (char*)malloc(len+1);
+
+            if (config->USERNAME == NULL) {
+                perror("Failed to allocate memory for USERNAME");
+                fclose(file);
+                return 1;
+            }
+            strcpy(config->USERNAME, value);
+            continue;
+        }
+        if (strncmp(line, "PASSWORD=", 9) == 0){
+            char *value = line + 9;
+
+            // Jumps whitelines
+            size_t len = strlen(value);
+            while (len > 0 && (value[len - 1] == ' ' || value[len - 1] == '\t' || value[len - 1] == '\r')) {
+                value[--len] = 0;
+            }
+
+            if (config->PASSWORD) free(config->PASSWORD);
+            config->PASSWORD = (char*)malloc(len+1);
+
+            if (config->PASSWORD == NULL) {
+                perror("Failed to allocate memory for PASSWORD");
+                fclose(file);
+                return 1;
+            }
+            strcpy(config->PASSWORD, value);
+            continue;
+       }
     }
 
     return 0;
