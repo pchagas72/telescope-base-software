@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_SERVER_NAME_LENGTH 64
+#define MAX_BASE_NAME_LENGTH 64
 #define MAX_INPUT_BUFFER_LINE 128
 #define SERVER_FILE_NAME "servers.txt"
 
@@ -15,7 +15,7 @@ int load_servers_from_file(Global_config *config) {
     }
 
     int num_servers = 0;
-    char line[MAX_SERVER_NAME_LENGTH];
+    char line[MAX_BASE_NAME_LENGTH];
 
     // First pass: Count the number of servers
     while (fgets(line, sizeof(line), file) != NULL) {
@@ -98,23 +98,23 @@ int load_config_file(Global_config *config, char *file_path){
             continue;
         }
 
-        if (strncmp(line, "SERVER_NAME=", 12)==0) {
-            char *value = line + 12; 
+        if (strncmp(line, "BASE_NAME=", 10)==0) {
+            char *value = line + 10; 
 
             size_t len = strlen(value);
             while (len > 0 && (value[len - 1] == ' ' || value[len - 1] == '\t' || value[len - 1] == '\r')) {
                 value[--len] = 0;
             }
 
-            if (config->SERVER_NAME) free(config->SERVER_NAME);
-            config->SERVER_NAME = (char*)malloc(len+1);
+            if (config->BASE_NAME) free(config->BASE_NAME);
+            config->BASE_NAME = (char*)malloc(len+1);
 
-            if (config->SERVER_NAME == NULL) {
-                perror("Failed to allocate memory for SERVER_NAME");
+            if (config->BASE_NAME == NULL) {
+                perror("Failed to allocate memory for BASE_NAME");
                 fclose(file);
                 return 1;
             }
-            strcpy(config->SERVER_NAME, value);
+            strcpy(config->BASE_NAME, value);
             continue;
         }
         if (strncmp(line, "BROKER_ADDRESS=",  15)==0){
@@ -191,4 +191,22 @@ int load_config_file(Global_config *config, char *file_path){
     }
 
     return 0;
+}
+
+// Frees memory allocated for the config struct
+void cleanup_config(Global_config *config){
+    if (config->KNOWN_SERVERS != NULL) {
+        for (int i = 0; i<config->NUM_KNOWN_SERVERS; i++) {
+            if (config->KNOWN_SERVERS[i] != NULL) {
+                free(config->KNOWN_SERVERS[i]);
+                config->KNOWN_SERVERS[i] = NULL;
+            } 
+        } 
+        free(config->KNOWN_SERVERS);
+
+        if (config->BASE_NAME) free(config->BASE_NAME);
+        if (config->MQTT_BROKER_ADDRESS) free(config->MQTT_BROKER_ADDRESS);
+        if (config->USERNAME) free(config->USERNAME);
+        if (config->PASSWORD) free(config->PASSWORD);
+    }
 }

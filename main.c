@@ -16,76 +16,54 @@
 #define HISTORY_FILE_NAME "history.txt"
 
 // MQTT definitions
-#define MQTT_RESPONSE_TOPIC "servers/BRAVO/response"
-#define MQTT_QOS 1
-
 MQTTClient client;
 MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 int rc;
 char response_topic_buffer[32];
 
-// Server config struct
+// Base config struct
 Global_config config;
 
 // Mutex for writing the interface
 pthread_mutex_t ncurses_mutex = PTHREAD_MUTEX_INITIALIZER;
 callback_context cb_ctx;
 
-// Frees memory allocated for the config struct
-void cleanup_config(Global_config *config){
-    if (config->KNOWN_SERVERS != NULL) {
-        for (int i = 0; i<config->NUM_KNOWN_SERVERS; i++) {
-            if (config->KNOWN_SERVERS[i] != NULL) {
-                free(config->KNOWN_SERVERS[i]);
-                config->KNOWN_SERVERS[i] = NULL;
-            } 
-        } 
-        free(config->KNOWN_SERVERS);
-
-        if (config->SERVER_NAME) free(config->SERVER_NAME);
-        if (config->MQTT_BROKER_ADDRESS) free(config->MQTT_BROKER_ADDRESS);
-        if (config->USERNAME) free(config->USERNAME);
-        if (config->PASSWORD) free(config->PASSWORD);
-    }
-}
-
 // Helper function to draw the input prompt in the input window
 void draw_prompt(WINDOW *win) {
     wclear(win);
-    mvwprintw(win, 0, 0, "%s: ", config.SERVER_NAME);
+    mvwprintw(win, 0, 0, "%s: ", config.BASE_NAME);
     wrefresh(win);
 }
 
 int main(){
 
-    // Testing and debugging
+    // Loads config file
     load_config_file(&config, "config.ini");
 
     // Initializing ncurses
-    initscr(); // Init screen, inits the ncurses module
+    initscr(); // Init screen
     cbreak();  // Line buffering disabled
     noecho();  // Don't echo() characters as they are typed
-
+               
+    // Get screen size
     int screen_rows, screen_cols;
-    getmaxyx(stdscr, screen_rows, screen_cols); // Get screen size
+    getmaxyx(stdscr, screen_rows, screen_cols);
 
-    // Create output window (full screen - input line)
+    // Create output window 
     WINDOW *out_win = newwin(screen_rows - 1, screen_cols, 0, 0);
-    scrollok(out_win, TRUE); // Allow this window to scroll
+    scrollok(out_win, TRUE); // Allow scroll
 
     // Create input window (1 line at bottom)
     WINDOW *in_win = newwin(1, screen_cols, screen_rows - 1, 0);
     keypad(in_win, TRUE); // Enables keypad
 
     // Initializing MQTT
+    
     // This context is passed to the MQTT thread's callbacks
     cb_ctx.mutex = &ncurses_mutex;
     cb_ctx.output_win = out_win;
 
-    // For now the servers are manually written to a file, CHANGE THIS TO:
-    // sv.discover -> all the servers that are listening to /servers/ALL/ping send
-    // a response with their name and description.
-    // This will be used to write a server struct.
+    // For now the servers are manually registered to a file.
     if (load_servers_from_file(&config) != 0){
         wprintw(out_win, "Failed to load servers names. Exiting.\n");
         wrefresh(out_win);
@@ -97,23 +75,23 @@ int main(){
     if ((connect_mqtt_client(&client,
                 &conn_opts,
                 config.MQTT_BROKER_ADDRESS,
-                config.SERVER_NAME,
+                config.BASE_NAME,
                 config.USERNAME,
                 config.PASSWORD,
                 &cb_ctx)) != 0){ // Pass context struct
         endwin(); // Exit ncurses mode
-        fprintf(stderr, "%s: Could not establish connection with MQTT broker.\n", config.SERVER_NAME);
+        fprintf(stderr, "%s: Could not establish connection with MQTT broker.\n", config.BASE_NAME);
         return 1;
     }
 
-    wprintw(out_win, "%s: STARTED MQTT\n", config.SERVER_NAME);
+    wprintw(out_win, "%s: STARTED MQTT\n", config.BASE_NAME);
 
     // Subscribing to the servers, CHANGE THIS TO:
     // for every server on the server list, subscribe to (/servers/NAME/response)
     for (int i = 0; i < config.NUM_KNOWN_SERVERS; i++) {
         snprintf(response_topic_buffer, sizeof(response_topic_buffer), "servers/%s/response", config.KNOWN_SERVERS[i]);
-        wprintw(out_win, "%s - MQTT: Subscribing to %s...\n",config.SERVER_NAME, response_topic_buffer);
-        if ((MQTTClient_subscribe(client, response_topic_buffer, MQTT_QOS)) != MQTTCLIENT_SUCCESS)
+        wprintw(out_win, "%s - MQTT: Subscribing to %s...\n",config.BASE_NAME, response_topic_buffer);
+        if ((MQTTClient_subscribe(client, response_topic_buffer, config.MQTT_QOS)) != MQTTCLIENT_SUCCESS)
         {
             wprintw(out_win, "Failed to subscribe, return code %d\n", rc);
             wrefresh(out_win);
@@ -122,7 +100,7 @@ int main(){
         }
     }
 
-    wprintw(out_win, "%s: Loaded %d servers.\n",config.SERVER_NAME, config.NUM_KNOWN_SERVERS);
+    wprintw(out_win, "%s: Loaded %d servers.\n",config.BASE_NAME, config.NUM_KNOWN_SERVERS);
     wrefresh(out_win); // Refresh output window to show messages
 
     // Buffers and variables for the main loop
@@ -148,8 +126,13 @@ int main(){
         switch (ch) {
             case KEY_UP:
                 pthread_mutex_lock(&ncurses_mutex);
-                wprintw(out_win, "Sending to server: %s\n", config.TARGET_SERVER);
-                wrefresh(out_win);
+                if (config.TARGET_SERVER != NULL) {
+                    wprintw(out_win, "Sending to server: %s\n", config.TARGET_SERVER);
+                    wrefresh(out_win);
+                } else{
+                    wprintw(out_win, "No target is set.\n");
+                    wrefresh(out_win);
+                }
                 pthread_mutex_unlock(&ncurses_mutex);
                 break;
 
@@ -171,7 +154,7 @@ int main(){
 
                 // Write the command in the output window
                 pthread_mutex_lock(&ncurses_mutex);
-                wprintw(out_win, "%s: %s\n", config.SERVER_NAME, input_buffer);
+                wprintw(out_win, "%s: %s\n", config.BASE_NAME, input_buffer);
                 wrefresh(out_win);
                 pthread_mutex_unlock(&ncurses_mutex);
 
@@ -253,6 +236,11 @@ int main(){
                             // Updates target_server pointer
                             pthread_mutex_lock(&ncurses_mutex);
                             wprintw(out_win, "Targeting server %s...\n", input_buffer_tokens);
+                            wrefresh(out_win);
+                            pthread_mutex_unlock(&ncurses_mutex);
+                        } else {
+                            pthread_mutex_lock(&ncurses_mutex);
+                            wprintw(out_win, "Target server \"%s\" does not exist or is not registered.\n", input_buffer_tokens);
                             wrefresh(out_win);
                             pthread_mutex_unlock(&ncurses_mutex);
                         }

@@ -5,7 +5,7 @@
 typedef struct global_config{
     char **KNOWN_SERVERS;
     int NUM_KNOWN_SERVERS;
-    char *SERVER_NAME;
+    char *BASE_NAME;
     char *MQTT_BROKER_ADDRESS;
     int MQTT_QOS;
     char *PASSWORD;
@@ -15,5 +15,6 @@ typedef struct global_config{
 
 int load_servers_from_file(Global_config *config);
 int load_config_file(Global_config *config, char *file_path);
+void cleanup_config(Global_config *config);
 
 #endif
