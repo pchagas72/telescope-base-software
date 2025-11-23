@@ -24,4 +24,10 @@ int connect_mqtt_client(
         char *PASSWORD,
         void *context);
 
+int mqtt_publish_struct(
+        MQTTClient client,
+        char *topic,
+        void *struct_data,
+        int data_len);
+
 #endif

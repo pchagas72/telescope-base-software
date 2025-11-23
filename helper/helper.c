@@ -1,5 +1,12 @@
 #include "helper.h"
 #include <string.h>
+#include <sys/time.h>
+
+long long get_time_ms() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (long long)(tv.tv_sec) * 1000 + (tv.tv_usec) / 1000;
+}
 
 int server_exists(char *server_name, Global_config *config){
     int server_exists = 0;

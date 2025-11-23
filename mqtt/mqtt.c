@@ -4,17 +4,42 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ncurses.h>
+#include <sys/time.h>
+#include "../protocol/protocol.h"
+#include "../helper/helper.h"
 
 int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *message)
 {
-    // Get ncurses window context
     callback_context *ctx = (callback_context *)context;
-
-    // Mutex locks
     pthread_mutex_lock(ctx->mutex);
 
-    // Writes and updates window
-    wprintw(ctx->output_win, "[%s] %.*s\n",topicName, message->payloadlen, (char*)message->payload);
+    if (message->payloadlen == sizeof(Message_Struct)) {
+        Message_Struct *incoming = (Message_Struct *)message->payload;
+
+        if (incoming->type == PACKET_TYPE_PING) {
+            bool integrity_ok = true;
+            long long now = get_time_ms();
+            long long diff = now - incoming->timestamp;
+            for(int i=0; i<32; i++) {
+                if (incoming->payload[i] != (char)0xAA) {
+                    integrity_ok = false;
+                    break;
+                }
+            }
+
+            if (integrity_ok) {
+                wprintw(ctx->output_win, "[%s] PACKET_RECEIVED | ID:%d | Time:%lld ms | Integrity: OK\n", 
+                        topicName,incoming->packet_id, diff);
+            } else {
+                wprintw(ctx->output_win, "[%s] PACKET_RECEIVED | ID:%d | DATA CORRUPTED!\n",
+                        topicName,
+                        incoming->packet_id);
+            }
+        }
+    } else {
+        wprintw(ctx->output_win, "[%s] Text: %.*s\n", topicName, message->payloadlen, (char*)message->payload);
+    }
+
     wrefresh(ctx->output_win);
 
     // Unlock mutex
@@ -114,11 +139,22 @@ int mqtt_publish_message(MQTTClient client, char *topic, char *payload) {
         return rc;
     }
 
-    // You can optionally wait for delivery confirmation, 
-    // but for commands, "fire and forget" is often fine.
-    // printf("Waiting for publication of %s\n", payload);
-    // rc = MQTTClient_waitForCompletion(client, token, 10000L);
-    // printf("Message with token %d delivered\n", token);
-    
+    return MQTTCLIENT_SUCCESS;
+}
+
+int mqtt_publish_struct(MQTTClient client, char *topic, void *struct_data, int data_len) {
+    MQTTClient_message pubmsg = MQTTClient_message_initializer;
+    MQTTClient_deliveryToken token;
+    int rc;
+
+    pubmsg.payload = struct_data;
+    pubmsg.payloadlen = data_len;
+    pubmsg.qos = 1;
+    pubmsg.retained = 0;
+
+    if ((rc = MQTTClient_publishMessage(client, topic, &pubmsg, &token)) != MQTTCLIENT_SUCCESS) {
+        // Log error
+        return rc;
+    }
     return MQTTCLIENT_SUCCESS;
 }
