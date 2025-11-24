@@ -3,3 +3,5 @@ history.txt
 servers.txt
 scc
 config.ini
+*.o
+app
